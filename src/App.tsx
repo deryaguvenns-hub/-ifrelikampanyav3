@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { History, RefreshCcw, UserRound } from 'lucide-react'
 import { usePortal } from './store'
 import { GroupTable } from './components/GroupTable'
-import { MergePanel, type Eylem } from './components/MergePanel'
+import { MergePanel } from './components/MergePanel'
 import { DetailDrawer } from './components/DetailDrawer'
 import { Button, Modal, useToast } from './components/ui'
 
@@ -10,8 +10,8 @@ export default function App() {
   const p = usePortal()
   const toast = useToast()
   const [seciliId, setSeciliId] = useState<number | null>(() => p.gruplar[0]?.KAMPANYAGRUP_ID ?? null)
-  const [aday, setAday] = useState<number | null>(null)
-  const [eylem, setEylem] = useState<Eylem>(null)
+  const [eklenen, setEklenen] = useState<Set<number>>(new Set())
+  const [kaldirilan, setKaldirilan] = useState<Set<number>>(new Set())
   const [detayId, setDetayId] = useState<number | null>(null)
   const [bekleyenSecim, setBekleyenSecim] = useState<number | null>(null)
   const [sifirlaAcik, setSifirlaAcik] = useState(false)
@@ -20,34 +20,41 @@ export default function App() {
 
   const secili = p.gruplar.find((g) => g.KAMPANYAGRUP_ID === seciliId) ?? null
   const kayitli = useMemo(() => (seciliId != null ? p.ortaklar(seciliId) : new Set<number>()), [p, seciliId])
-  const taslakVar = aday != null
+  const taslakSayisi = eklenen.size + kaldirilan.size
   const ortakSayisi = useCallback((id: number) => p.ortaklar(id).size, [p])
   const ad = p.grupAdi
 
-  const taslakTemizle = () => { setAday(null); setEylem(null) }
+  const taslakTemizle = () => { setEklenen(new Set()); setKaldirilan(new Set()) }
 
   const yonet = (id: number) => {
     setDetayId(null)
     if (id === seciliId) return
-    if (taslakVar) { setBekleyenSecim(id); return }
+    if (taslakSayisi > 0) { setBekleyenSecim(id); return }
     setSeciliId(id); taslakTemizle()
   }
 
-  const adaySec = (id: number | null) => {
+  const tasi = (id: number, hedef: 'sol' | 'sag') => {
     if (id === seciliId) return // bir çatı kendisiyle birleştirilemez
-    setAday(id); setEylem(null) // her yeni eşleştirme temiz bir işlemle başlar
+    const e = new Set(eklenen), k = new Set(kaldirilan)
+    if (hedef === 'sag') { if (k.has(id)) k.delete(id); else if (!kayitli.has(id)) e.add(id) }
+    else { if (e.has(id)) e.delete(id); else if (kayitli.has(id)) k.add(id) }
+    setEklenen(e); setKaldirilan(k)
+  }
+  const geriAl = (id: number) => {
+    const e = new Set(eklenen), k = new Set(kaldirilan); e.delete(id); k.delete(id); setEklenen(e); setKaldirilan(k)
   }
   const vazgec = () => {
+    const n = taslakSayisi
     taslakTemizle()
-    toast({ tone: 'info', title: 'İşlem temizlendi', text: 'Kaydedilmemiş işlem iptal edildi.' })
+    toast({ tone: 'info', title: 'Değişiklikler geri alındı', text: `${n} kaydedilmemiş değişiklik iptal edildi.` })
   }
-  const kaydet = () => {
-    if (!secili || aday == null || !eylem) return
-    const verildi = eylem === 'ver'
-    const no = p.kaydet(secili.KAMPANYAGRUP_ID, verildi ? [aday] : [], verildi ? [] : [aday])
-    toast({ tone: 'ok', title: verildi ? 'Birleşim izni verildi' : 'Birleşim izni kaldırıldı',
-      text: `${secili.KAMPANYAGRUP_ADI} ↔ ${ad(aday)}. İşlem geçmişine eklendi${no ? ` (${no})` : ''}.` })
-    taslakTemizle() // kayıttan sonra yalnızca çalışma alanı temizlenir
+  const onayla = () => {
+    if (!secili) return
+    const ek = [...eklenen], kal = [...kaldirilan]
+    const no = p.kaydet(secili.KAMPANYAGRUP_ID, ek, kal)
+    taslakTemizle()
+    const parca = [ek.length && `${ek.length} birleşim izni verildi`, kal.length && `${kal.length} birleşim izni kaldırıldı`].filter(Boolean).join(', ')
+    toast({ tone: 'ok', title: 'Değişiklikler kaydedildi', text: `${secili.KAMPANYAGRUP_ADI}: ${parca}. İşlem geçmişine eklendi${no ? ` (${no})` : ''}.` })
   }
 
   const detay = p.gruplar.find((g) => g.KAMPANYAGRUP_ID === detayId) ?? null
@@ -96,8 +103,8 @@ export default function App() {
           <GroupTable gruplar={p.gruplar} ortakSayisi={ortakSayisi} seciliId={seciliId}
             onYonet={yonet} onDetay={setDetayId} />
           <div className="xl:sticky xl:top-[76px]">
-            <MergePanel secili={secili} gruplar={p.gruplar} kayitli={kayitli} aday={aday} eylem={eylem}
-              onAday={adaySec} onEylem={setEylem} onKaydet={kaydet} onVazgec={vazgec} onDetay={setDetayId} />
+            <MergePanel secili={secili} gruplar={p.gruplar} kayitli={kayitli} eklenen={eklenen} kaldirilan={kaldirilan}
+              onTasi={tasi} onGeriAl={geriAl} onKaydet={onayla} onVazgec={vazgec} onDetay={setDetayId} />
           </div>
         </div>
       </main>
@@ -105,12 +112,12 @@ export default function App() {
       <DetailDrawer grup={detay} ortaklar={detay ? [...p.ortaklar(detay.KAMPANYAGRUP_ID)] : []} gecmis={p.durum.gecmis}
         grupAdi={ad} yonetilen={detayId === seciliId} onKapat={kapat} onYonet={yonet} />
 
-      <Modal open={bekleyenSecim != null} onClose={() => setBekleyenSecim(null)} title="Kaydedilmemiş işlem var"
+      <Modal open={bekleyenSecim != null} onClose={() => setBekleyenSecim(null)} title="Kaydedilmemiş değişiklik var"
         footer={<>
           <Button onClick={() => setBekleyenSecim(null)}>Bu çatıda kal</Button>
-          <Button variant="danger" onClick={() => { taslakTemizle(); setSeciliId(bekleyenSecim); setBekleyenSecim(null) }}>İşlemi iptal et ve geç</Button>
+          <Button variant="danger" onClick={() => { taslakTemizle(); setSeciliId(bekleyenSecim); setBekleyenSecim(null) }}>Değişiklikleri at ve geç</Button>
         </>}>
-        <p className="text-sm"><strong>{secili?.KAMPANYAGRUP_ADI}</strong> için kaydedilmemiş bir birleşim işlemi var. Kaynak çatıyı değiştirirseniz bu işlem iptal edilir.</p>
+        <p className="text-sm"><strong>{secili?.KAMPANYAGRUP_ADI}</strong> için {taslakSayisi} kaydedilmemiş değişiklik var. Başka bir çatıya geçerseniz bu değişiklikler kaybolur.</p>
       </Modal>
 
       <Modal open={sifirlaAcik} onClose={() => setSifirlaAcik(false)} title="Demo verileri sıfırlansın mı?"
