@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kurumsal operasyon ekranı: lacivert başlık bandı, açık gri zemin, beyaz çalışma yüzeyleri. */
+:root {
+  --bg: 245 247 250;
+  --surface: 255 255 255;
+  --surface-2: 240 243 248;
+  --border: 222 227 236;
+  --fg: 16 26 50;
+  --muted: 90 102 128;
+  --navy: 20 42 92;
+  --navy-hover: 30 58 122;
+  --navy-soft: 231 237 248;
+  --on-navy: 255 255 255;
+  --green: 20 122 80;
+  --green-soft: 228 243 235;
+  --red: 186 44 44;
+  --red-soft: 251 235 235;
+  --amber: 150 96 0;
+  --amber-soft: 252 243 222;
+  --header: 13 28 64;
+  --on-header: 255 255 255;
+  --header-muted: 170 184 214;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: 11 16 28; --surface: 18 25 42; --surface-2: 25 33 53; --border: 42 52 78;
+    --fg: 229 233 242; --muted: 150 160 185;
+    --navy: 124 160 232; --navy-hover: 150 182 242; --navy-soft: 30 42 72; --on-navy: 9 17 36;
+    --green: 78 196 142; --green-soft: 19 50 39; --red: 238 112 112; --red-soft: 58 25 30;
+    --amber: 228 176 74; --amber-soft: 54 42 17;
+    --header: 9 18 40; --on-header: 236 240 250; --header-muted: 140 156 192;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: 11 16 28; --surface: 18 25 42; --surface-2: 25 33 53; --border: 42 52 78;
+  --fg: 229 233 242; --muted: 150 160 185;
+  --navy: 124 160 232; --navy-hover: 150 182 242; --navy-soft: 30 42 72; --on-navy: 9 17 36;
+  --green: 78 196 142; --green-soft: 19 50 39; --red: 238 112 112; --red-soft: 58 25 30;
+  --amber: 228 176 74; --amber-soft: 54 42 17;
+  --header: 9 18 40; --on-header: 236 240 250; --header-muted: 140 156 192;
+  color-scheme: dark;
+}
+
+html, body { min-height: 100%; }
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+.tnum { font-variant-numeric: tabular-nums; }
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 1024px) {
+  .gutter { padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); }
+}
+:focus-visible { outline: 2px solid rgb(var(--navy)); outline-offset: 2px; border-radius: 4px; }
+.label-caps { text-transform: uppercase; letter-spacing: .06em; font-size: 11px; font-weight: 600; }
+h1, h2, h3 { text-wrap: balance; }
+@keyframes slide-in { from { transform: translateX(24px); opacity: .6 } to { transform: none; opacity: 1 } }
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+.anim-drawer { animation: slide-in .18s ease-out; }
+.anim-toast { animation: toast-in .18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .anim-drawer, .anim-toast { animation: none; } }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: rgb(var(--header)); }
