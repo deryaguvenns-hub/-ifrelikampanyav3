@@ -81,7 +81,7 @@ function AltKampanyalar({ grup }: { grup: GrupOzeti }) {
   const [ara, setAra] = useState('')
   const [boyut, setBoyut] = useState(10)
   const [sayfa, setSayfa] = useState(1)
-  const [artan, setArtan] = useState(true)
+  const [artan, setArtan] = useState(false) // varsayılan: en yeniden eskiye
   const liste = useMemo(() => {
     const q = norm(ara.trim())
     const l = q ? grup.kampanyalar.filter((k) => norm(k.kampanyaAdi).includes(q) || norm(k.kampanyaKodu).includes(q)) : grup.kampanyalar

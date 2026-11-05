@@ -5,7 +5,7 @@ import { cx, fmtDate, norm } from '../utils'
 import { Badge, Button, SearchInput } from './ui'
 
 type DurumFiltre = 'tumu' | 'birlesti' | 'birlesmedi'
-type Siralama = 'ad' | 'bitis' | 'sayi'
+type Siralama = 'yeni' | 'eski' | 'ad' | 'sayi'
 
 export function GroupTable({ gruplar, ortakSayisi, seciliId, onYonet, onDetay }: {
   gruplar: GrupOzeti[]
@@ -16,7 +16,7 @@ export function GroupTable({ gruplar, ortakSayisi, seciliId, onYonet, onDetay }:
 }) {
   const [ara, setAra] = useState('')
   const [durum, setDurum] = useState<DurumFiltre>('tumu')
-  const [sira, setSira] = useState<Siralama>('ad')
+  const [sira, setSira] = useState<Siralama>('yeni')
 
   const liste = useMemo(() => {
     const q = norm(ara.trim())
@@ -25,7 +25,8 @@ export function GroupTable({ gruplar, ortakSayisi, seciliId, onYonet, onDetay }:
       .filter((g) => durum === 'tumu' || (durum === 'birlesti') === (ortakSayisi(g.KAMPANYAGRUP_ID) > 0))
       .sort((a, b) => sira === 'ad' ? a.KAMPANYAGRUP_ADI.localeCompare(b.KAMPANYAGRUP_ADI, 'tr')
         : sira === 'sayi' ? b.kampanyalar.length - a.kampanyalar.length
-        : a.enErkenBitis.localeCompare(b.enErkenBitis))
+        : sira === 'yeni' ? b.enErkenBitis.localeCompare(a.enErkenBitis) || a.KAMPANYAGRUP_ADI.localeCompare(b.KAMPANYAGRUP_ADI, 'tr')
+        : a.enErkenBitis.localeCompare(b.enErkenBitis) || a.KAMPANYAGRUP_ADI.localeCompare(b.KAMPANYAGRUP_ADI, 'tr'))
   }, [gruplar, ara, durum, sira, ortakSayisi])
 
   const segment = (v: DurumFiltre, l: string) => (
@@ -47,8 +48,9 @@ export function GroupTable({ gruplar, ortakSayisi, seciliId, onYonet, onDetay }:
           </div>
           <select id="cati-sirala" value={sira} onChange={(e) => setSira(e.target.value as Siralama)} aria-label="Sıralama"
             className="h-9 rounded-md border border-line bg-surface px-2 text-fg text-[13px]">
-            <option value="ad">Ada göre</option>
-            <option value="bitis">En yakın bitişe göre</option>
+            <option value="yeni">Tarih: En yeniden eskiye</option>
+            <option value="eski">Tarih: En eskiden yeniye</option>
+            <option value="ad">Ada göre (A–Z)</option>
             <option value="sayi">Kampanya sayısına göre</option>
           </select>
         </div>
