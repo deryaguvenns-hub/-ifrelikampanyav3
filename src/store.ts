@@ -3,7 +3,7 @@ import { CATI_GRUPLAR, baslangicDurumu, kampanyalariUret, uygunMu } from './data
 import type { CatiGrup, GecmisKaydi, Kampanya, PortalDurumu } from './types'
 import { pairKey } from './utils'
 
-const ANAHTAR = 'sifreli-kampanya-birlesim-portali:v1'
+const ANAHTAR = 'sifreli-kampanya-birlesim-portali:v2'
 
 function oku(): PortalDurumu | null {
   try {
@@ -63,8 +63,8 @@ export function usePortal() {
           kaynakKampanyaSayisi: sayilar[kaynak] ?? 0, iliskiliKampanyaSayisi: sayilar[hedef] ?? 0,
         })
       }
-      for (const h of eklenen) { iliskiler.add(pairKey(kaynak, h)); ekle(h, true) }
-      for (const h of kaldirilan) { iliskiler.delete(pairKey(kaynak, h)); ekle(h, false) }
+      for (const h of eklenen.filter((x) => x !== kaynak)) { iliskiler.add(pairKey(kaynak, h)); ekle(h, true) }
+      for (const h of kaldirilan.filter((x) => x !== kaynak)) { iliskiler.delete(pairKey(kaynak, h)); ekle(h, false) }
       // Geçmiş yalnızca büyür: yeni kayıtlar başa eklenir, eskiler hiç değiştirilmez.
       return { ...d, iliskiler: [...iliskiler], gecmis: [...yeni, ...d.gecmis], islemSayaci: sayac }
     })

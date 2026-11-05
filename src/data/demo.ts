@@ -99,7 +99,7 @@ const BASLANGIC_ILISKILER: [number, number][] = [
   [102, 107], [102, 109], [103, 109], [105, 107], [106, 111], [109, 106],
 ]
 
-const KULLANICILAR = ['Elif Aksoy', 'Murat Demir', 'Selin Kaya', 'Burak Öztürk']
+const KULLANICILAR = ['Derya Güven', 'Derya Güven', 'Derya Güven', 'Derya Güven']
 
 export function baslangicDurumu(sayilar: Record<number, number>, bugun = new Date()): PortalDurumu {
   const gecmis: GecmisKaydi[] = []
@@ -141,7 +141,7 @@ export function baslangicDurumu(sayilar: Record<number, number>, bugun = new Dat
     surum: 1,
     iliskiler: BASLANGIC_ILISKILER.map(([a, b]) => pairKey(a, b)),
     gecmis,
-    kullanici: 'Demo Kullanıcı',
+    kullanici: 'Derya Güven',
     islemSayaci: sayac,
   }
 }

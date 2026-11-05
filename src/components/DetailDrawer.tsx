@@ -1,10 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight, Link2, X } from 'lucide-react'
+import { ArrowDown, ArrowDownUp, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Link2, X } from 'lucide-react'
 import type { GrupOzeti } from '../store'
 import type { GecmisKaydi, IliskiDurumu } from '../types'
 import { cx, daysUntil, fmtDate, fmtDateTime, norm } from '../utils'
 import { Badge, Button, SearchInput } from './ui'
-import { Gecerlilik } from './Gecerlilik'
 
 type Sekme = 'alt' | 'gecmis'
 
@@ -50,9 +49,8 @@ export function DetailDrawer({ grup, ortaklar, gecmis, grupAdi, yonetilen, onKap
             <div className="label-caps text-muted">Kampanya detayı ve işlem geçmişi</div>
             <h2 className="text-lg font-semibold mt-0.5">{grup.KAMPANYAGRUP_ADI}</h2>
             <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
-              <span className="text-muted tnum">{grup.kampanyalar.length} uygun alt kampanya</span>
-              <Gecerlilik g={grup} compact />
-              {ortaklar.length > 0 ? <Badge tone="ok" dot>{ortaklar.length} çatı ile birleşim izni var</Badge> : <Badge dot>Birleşim izni tanımlı değil</Badge>}
+              {ortaklar.length > 0 ? <Badge tone="ok" dot>Birleşti</Badge> : <Badge dot>Birleşmedi</Badge>}
+              <span className="text-muted tnum">En yakın bitiş: {fmtDate(grup.enErkenBitis)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -71,23 +69,25 @@ export function DetailDrawer({ grup, ortaklar, gecmis, grupAdi, yonetilen, onKap
           {tab('gecmis', 'İşlem Geçmişi', ilgiliGecmis.length)}
         </div>
         <div className="flex-1 overflow-y-auto">
-          {sekme === 'alt' ? <AltKampanyalar grup={grup} ortakSayisi={ortaklar.length} />
-            : <IslemGecmisi kayitlar={ilgiliGecmis} tumGecmis={gecmis} grupAdi={grupAdi} />}
+          {sekme === 'alt' ? <AltKampanyalar grup={grup} />
+            : <IslemGecmisi kayitlar={ilgiliGecmis} tumGecmis={gecmis} grupAdi={grupAdi} seciliGrupId={grup.KAMPANYAGRUP_ID} />}
         </div>
       </div>
     </div>
   )
 }
 
-function AltKampanyalar({ grup, ortakSayisi }: { grup: GrupOzeti; ortakSayisi: number }) {
+function AltKampanyalar({ grup }: { grup: GrupOzeti }) {
   const [ara, setAra] = useState('')
   const [boyut, setBoyut] = useState(10)
   const [sayfa, setSayfa] = useState(1)
+  const [artan, setArtan] = useState(true)
   const liste = useMemo(() => {
     const q = norm(ara.trim())
-    return q ? grup.kampanyalar.filter((k) => norm(k.kampanyaAdi).includes(q) || norm(k.kampanyaKodu).includes(q)) : grup.kampanyalar
-  }, [grup, ara])
-  useEffect(() => setSayfa(1), [ara, boyut, grup.KAMPANYAGRUP_ID])
+    const l = q ? grup.kampanyalar.filter((k) => norm(k.kampanyaAdi).includes(q) || norm(k.kampanyaKodu).includes(q)) : grup.kampanyalar
+    return [...l].sort((a, b) => (artan ? 1 : -1) * a.bitisTarihi.localeCompare(b.bitisTarihi))
+  }, [grup, ara, artan])
+  useEffect(() => setSayfa(1), [ara, boyut, artan, grup.KAMPANYAGRUP_ID])
   const sayfaSayisi = Math.max(1, Math.ceil(liste.length / boyut))
   const gorunen = liste.slice((sayfa - 1) * boyut, sayfa * boyut)
 
@@ -95,16 +95,18 @@ function AltKampanyalar({ grup, ortakSayisi }: { grup: GrupOzeti; ortakSayisi: n
     <div className="p-5 flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput id="alt-ara" value={ara} onChange={setAra} placeholder="Kampanya kodu veya adı ara" className="flex-1 min-w-[220px]" />
-        <span className="text-xs text-muted">Görüntüleme amaçlıdır; birleşim izni çatı seviyesinde yönetilir.</span>
       </div>
       <div className="overflow-x-auto rounded-md border border-line">
-        <table className="w-full text-left min-w-[600px]">
+        <table className="w-full text-left min-w-[480px]">
           <thead>
             <tr className="text-muted bg-surface2/60 border-b border-line">
               <th className="label-caps px-3 py-2.5">Kampanya Kodu</th>
               <th className="label-caps px-3 py-2.5">Kampanya Adı</th>
-              <th className="label-caps px-3 py-2.5">Bitiş Tarihi</th>
-              <th className="label-caps px-3 py-2.5">Birleşim Durumu</th>
+              <th className="label-caps px-3 py-2" aria-sort={artan ? 'ascending' : 'descending'}>
+                <button onClick={() => setArtan(!artan)} className="label-caps inline-flex items-center gap-1 hover:text-fg" title="Bitiş tarihine göre sırala">
+                  Bitiş Tarihi {artan ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -118,13 +120,10 @@ function AltKampanyalar({ grup, ortakSayisi }: { grup: GrupOzeti; ortakSayisi: n
                     {fmtDate(k.bitisTarihi)}
                     {g <= 14 && <span className="ml-2 text-xs text-warn">{g <= 0 ? 'bugün bitiyor' : `${g} gün kaldı`}</span>}
                   </td>
-                  <td className="px-3 py-2.5">
-                    {ortakSayisi > 0 ? <Badge tone="ok" dot>Çatı üzerinden {ortakSayisi} çatı ile birleşebilir</Badge> : <Badge dot>Birleşim izni yok</Badge>}
-                  </td>
                 </tr>
               )
             })}
-            {gorunen.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-muted">Aramanıza uygun kampanya bulunamadı.</td></tr>}
+            {gorunen.length === 0 && <tr><td colSpan={3} className="px-3 py-8 text-center text-muted">Aramanıza uygun kampanya bulunamadı.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -150,7 +149,7 @@ function AltKampanyalar({ grup, ortakSayisi }: { grup: GrupOzeti; ortakSayisi: n
 const durumMetni = (d: IliskiDurumu) => (d === 'IZIN_VAR' ? 'Birleşim izni var' : 'Birleşim izni yok')
 const DurumRozet = ({ d }: { d: IliskiDurumu }) => <Badge tone={d === 'IZIN_VAR' ? 'ok' : 'neutral'} dot>{durumMetni(d)}</Badge>
 
-function IslemGecmisi({ kayitlar, tumGecmis, grupAdi }: { kayitlar: GecmisKaydi[]; tumGecmis: GecmisKaydi[]; grupAdi: (id: number) => string }) {
+function IslemGecmisi({ kayitlar, tumGecmis, grupAdi, seciliGrupId }: { kayitlar: GecmisKaydi[]; tumGecmis: GecmisKaydi[]; grupAdi: (id: number) => string; seciliGrupId: number }) {
   const [acik, setAcik] = useState<string | null>(null)
   const [yeniOnce, setYeniOnce] = useState(true)
   const [tur, setTur] = useState<'tumu' | 'IZIN_VERILDI' | 'IZIN_KALDIRILDI'>('tumu')
@@ -164,24 +163,20 @@ function IslemGecmisi({ kayitlar, tumGecmis, grupAdi }: { kayitlar: GecmisKaydi[
       <div className="flex flex-wrap items-center gap-3">
         <select id="gecmis-tur" value={tur} onChange={(e) => setTur(e.target.value as typeof tur)} className="h-9 rounded-md border border-line bg-surface px-2.5 text-sm">
           <option value="tumu">Tüm işlem türleri</option>
-          <option value="IZIN_VERILDI">Birleşim izni verildi</option>
-          <option value="IZIN_KALDIRILDI">Birleşim izni kaldırıldı</option>
+          <option value="IZIN_VERILDI">Birleşim İzni Verildi</option>
+          <option value="IZIN_KALDIRILDI">Birleşim İzni Kaldırıldı</option>
         </select>
         <Button size="sm" onClick={() => setYeniOnce(!yeniOnce)}><ArrowDownUp size={14} />{yeniOnce ? 'En yeni üstte' : 'En eski üstte'}</Button>
-        <span className="text-xs text-muted ml-auto">Kayıtlar silinmez; her değişiklik yeni kayıt olarak eklenir.</span>
       </div>
       <div className="overflow-x-auto rounded-md border border-line">
-        <table className="w-full text-left min-w-[820px]">
+        <table className="w-full text-left min-w-[560px]">
           <thead>
             <tr className="text-muted bg-surface2/60 border-b border-line">
               <th className="w-8" />
-              <th className="label-caps px-2 py-2.5">Tarih / Saat</th>
-              <th className="label-caps px-2 py-2.5">Kullanıcı</th>
-              <th className="label-caps px-2 py-2.5">Kaynak Çatı</th>
-              <th className="label-caps px-2 py-2.5">İlişkili Çatı</th>
-              <th className="label-caps px-2 py-2.5">İşlem Türü</th>
-              <th className="label-caps px-2 py-2.5">Önceki Durum</th>
-              <th className="label-caps px-2 py-2.5">Yeni Durum</th>
+              <th className="label-caps px-2 py-2">Tarih / Saat</th>
+              <th className="label-caps px-2 py-2">İlişkili Çatı</th>
+              <th className="label-caps px-2 py-2">İşlem Türü</th>
+              <th className="label-caps px-2 py-2">Kullanıcı</th>
             </tr>
           </thead>
           <tbody>
@@ -194,18 +189,15 @@ function IslemGecmisi({ kayitlar, tumGecmis, grupAdi }: { kayitlar: GecmisKaydi[
                   <tr onClick={() => setAcik(ac ? null : h.id)} className={cx('border-b border-line cursor-pointer hover:bg-surface2/60', ac && 'bg-surface2/60')}
                     aria-expanded={ac}>
                     <td className="pl-3"><ChevronDown size={15} className={cx('text-muted transition-transform', !ac && '-rotate-90')} /></td>
-                    <td className="px-2 py-2.5 tnum whitespace-nowrap text-[13px]">{fmtDateTime(h.tarih)}</td>
-                    <td className="px-2 py-2.5 text-[13px] whitespace-nowrap">{h.kullanici}</td>
-                    <td className="px-2 py-2.5 text-[13px]">{grupAdi(h.kaynakGrupId)}</td>
-                    <td className="px-2 py-2.5 text-[13px]">{grupAdi(h.iliskiliGrupId)}</td>
-                    <td className="px-2 py-2.5"><Badge tone={verildi ? 'ok' : 'bad'}>{verildi ? 'Birleşim izni verildi' : 'Birleşim izni kaldırıldı'}</Badge></td>
-                    <td className="px-2 py-2.5 text-[13px] text-muted whitespace-nowrap">{durumMetni(h.oncekiDurum)}</td>
-                    <td className="px-2 py-2.5 text-[13px] font-medium whitespace-nowrap">{durumMetni(h.yeniDurum)}</td>
+                    <td className="px-2 py-2 tnum whitespace-nowrap text-[13px]">{fmtDateTime(h.tarih)}</td>
+                    <td className="px-2 py-2 text-[13px]">{grupAdi(h.iliskiliGrupId === seciliGrupId ? h.kaynakGrupId : h.iliskiliGrupId)}</td>
+                    <td className="px-2 py-2"><Badge tone={verildi ? 'ok' : 'bad'}>{verildi ? 'Birleşim İzni Verildi' : 'Birleşim İzni Kaldırıldı'}</Badge></td>
+                    <td className="px-2 py-2 text-[13px] whitespace-nowrap">{h.kullanici}</td>
                   </tr>
                   {ac && (
                     <tr className="border-b border-line bg-surface2/40">
                       <td />
-                      <td colSpan={7} className="px-2 py-4">
+                      <td colSpan={4} className="px-2 py-3">
                         <div className="grid gap-4 md:grid-cols-[1.2fr_1fr] text-[13px]">
                           <div className="flex flex-col gap-3">
                             <p>
@@ -215,10 +207,13 @@ function IslemGecmisi({ kayitlar, tumGecmis, grupAdi }: { kayitlar: GecmisKaydi[
                                 : `Bu işlemden sonra iki çatı altındaki kampanyalar birlikte kullanılamaz.`}
                             </p>
                             <div className="flex flex-wrap items-center gap-2">
-                              <DurumRozet d={h.oncekiDurum} /><ChevronRight size={14} className="text-muted" /><DurumRozet d={h.yeniDurum} />
+                              <span className="text-muted">Önceki durum</span><DurumRozet d={h.oncekiDurum} />
+                              <ChevronRight size={14} className="text-muted" />
+                              <span className="text-muted">Yeni durum</span><DurumRozet d={h.yeniDurum} />
                             </div>
                           </div>
                           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+                            <dt className="text-muted">Kaynak çatı</dt><dd>{grupAdi(h.kaynakGrupId)}</dd>
                             <dt className="text-muted">İşlem no</dt><dd className="font-mono text-[12.5px]">{h.islemNo}</dd>
                             <dt className="text-muted">Tarih</dt><dd className="tnum">{fmtDateTime(h.tarih)}</dd>
                             <dt className="text-muted">Kapsam</dt><dd>Çatı kampanya seviyesi (tüm uygun alt kampanyalar)</dd>
@@ -241,7 +236,7 @@ function IslemGecmisi({ kayitlar, tumGecmis, grupAdi }: { kayitlar: GecmisKaydi[
                 </Fragment>
               )
             })}
-            {liste.length === 0 && <tr><td colSpan={8} className="px-3 py-10 text-center text-muted">Bu çatı için kayıtlı işlem bulunmuyor.</td></tr>}
+            {liste.length === 0 && <tr><td colSpan={5} className="px-3 py-10 text-center text-muted">Bu çatı için kayıtlı işlem bulunmuyor.</td></tr>}
           </tbody>
         </table>
       </div>

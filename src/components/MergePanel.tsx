@@ -7,7 +7,6 @@ import { ArrowLeft, ArrowRight, GripVertical, Inbox, RotateCcw, Save, Undo2 } fr
 import type { GrupOzeti } from '../store'
 import { cx, norm } from '../utils'
 import { Badge, Button, SearchInput } from './ui'
-import { Gecerlilik } from './Gecerlilik'
 
 type Havuz = 'sol' | 'sag'
 
@@ -64,13 +63,10 @@ export function MergePanel({ secili, gruplar, kayitli, eklenen, kaldirilan, onTa
 
   return (
     <section className="rounded-lg border border-line bg-surface flex flex-col min-w-0" aria-labelledby="birlesim-baslik">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="label-caps text-muted">Birleşim yönetimi</div>
-          <h2 id="birlesim-baslik" className="text-[17px] font-semibold mt-0.5">{secili.KAMPANYAGRUP_ADI}</h2>
-          <div className="text-xs text-muted mt-0.5 tnum">
-            {secili.kampanyalar.length} uygun alt kampanya · İzin çatı seviyesinde tanımlanır, tüm alt kampanyalara uygulanır
-          </div>
+          <h2 id="birlesim-baslik" className="text-[16px] font-semibold mt-0.5">{secili.KAMPANYAGRUP_ADI}</h2>
         </div>
         <Button size="sm" variant="ghost" onClick={() => onDetay(secili.KAMPANYAGRUP_ID)}>Alt kampanyalar ve geçmiş</Button>
       </div>
@@ -86,11 +82,11 @@ export function MergePanel({ secili, gruplar, kayitli, eklenen, kaldirilan, onTa
           },
         }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3">
-          <HavuzKolonu id="sol" baslik="Birleşime Uygun Çatılar" aciklama="Henüz birleşim izni olmayan çatılar. Sağa taşıyarak izin verin."
+          <HavuzKolonu id="sol" baslik="Birleşime Uygun Çatılar" aciklama="Sağa taşıyarak izin verin."
             ara={araSol} setAra={setAraSol} liste={filtre(sol, araSol)} toplam={sol.length}
             durum={(id) => (kaldirilan.has(id) ? 'kaldirilacak' : null)}
             onTasi={(id) => onTasi(id, 'sag')} onGeriAl={onGeriAl} onDetay={onDetay} />
-          <HavuzKolonu id="sag" baslik="Birleşim İzni Verilenler" aciklama="Seçili çatı ile birlikte kullanılabilen çatılar. Sola taşıyarak izni kaldırın."
+          <HavuzKolonu id="sag" baslik="Birleşim İzni Verilenler" aciklama="Sola taşıyarak izni kaldırın."
             ara={araSag} setAra={setAraSag} liste={filtre(sag, araSag)} toplam={sag.length}
             durum={(id) => (eklenen.has(id) ? 'eklenecek' : null)}
             onTasi={(id) => onTasi(id, 'sol')} onGeriAl={onGeriAl} onDetay={onDetay} />
@@ -108,7 +104,7 @@ export function MergePanel({ secili, gruplar, kayitli, eklenen, kaldirilan, onTa
       <div className={cx('border-t border-line px-4 py-3 flex flex-wrap items-center gap-3', degisiklik > 0 && 'bg-warn-soft/50')}>
         <div className="flex-1 min-w-[220px] text-[13px]">
           {degisiklik === 0 ? (
-            <span className="text-muted">Kaydedilmemiş değişiklik yok. Çatıları havuzlar arasında sürükleyin veya ok butonlarını kullanın.</span>
+            <span className="text-muted">Kaydedilmemiş değişiklik yok.</span>
           ) : (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-semibold">Taslak:</span>
@@ -143,7 +139,7 @@ function HavuzKolonu({ id, baslik, aciklama, ara, setAra, liste, toplam, durum, 
         isOver && hedefOlabilir ? (id === 'sag' ? 'border-ok bg-ok-soft/40 border-dashed' : 'border-bad bg-bad-soft/40 border-dashed')
           : hedefOlabilir ? 'border-dashed border-navy/50 bg-surface2/40' : 'border-line bg-surface2/40')}
       aria-label={baslik}>
-      <div className="px-3 pt-3 pb-2 flex flex-col gap-2">
+      <div className="px-3 pt-2.5 pb-2 flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold text-[14px] flex items-center gap-2">
             <span className={cx('h-2 w-2 rounded-full', id === 'sag' ? 'bg-ok' : 'bg-muted')} />{baslik}
@@ -153,7 +149,7 @@ function HavuzKolonu({ id, baslik, aciklama, ara, setAra, liste, toplam, durum, 
         <p className="text-xs text-muted">{aciklama}</p>
         <SearchInput id={`havuz-ara-${id}`} value={ara} onChange={setAra} placeholder="Havuzda ara" />
       </div>
-      <ul className="flex flex-col gap-1.5 px-3 pb-3 min-h-[220px] max-h-[440px] overflow-y-auto">
+      <ul className="flex flex-col gap-1 px-3 pb-3 min-h-[200px] max-h-[460px] overflow-y-auto">
         {liste.map((g) => (
           <HavuzSatiri key={g.KAMPANYAGRUP_ID} g={g} havuz={id} durum={durum(g.KAMPANYAGRUP_ID)}
             onTasi={onTasi} onGeriAl={onGeriAl} onDetay={onDetay} />
@@ -185,16 +181,13 @@ function HavuzSatiri({ g, havuz, durum, onTasi, onGeriAl, onDetay }: {
         aria-label={`${g.KAMPANYAGRUP_ADI} öğesini sürükle`} title="Sürükleyerek taşı">
         <GripVertical size={16} />
       </button>
-      <button onClick={() => onDetay(id)} className="flex-1 min-w-0 overflow-hidden text-left py-2 pr-2 pl-1" title="Detayı aç">
+      <button onClick={() => onDetay(id)} className="flex-1 min-w-0 overflow-hidden text-left py-1.5 pr-2 pl-1" title="Detayı aç">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-[13.5px] truncate">{g.KAMPANYAGRUP_ADI}</span>
           {durum === 'eklenecek' && <Badge tone="ok">Eklenecek</Badge>}
           {durum === 'kaldirilacak' && <Badge tone="bad">Kaldırılacak</Badge>}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted mt-0.5 tnum">
-          <span className="whitespace-nowrap">{g.kampanyalar.length} kampanya</span><span aria-hidden>·</span><Gecerlilik g={g} compact />
-        </div>
-      </button>
+              </button>
       <div className="flex items-center gap-0.5 pr-1.5">
         {durum && (
           <button onClick={() => onGeriAl(id)} className="p-1.5 rounded text-muted hover:text-fg hover:bg-surface2" title="Bu değişikliği geri al" aria-label={`${g.KAMPANYAGRUP_ADI} değişikliğini geri al`}>

@@ -35,6 +35,7 @@ export default function App() {
   }
 
   const tasi = (id: number, hedef: 'sol' | 'sag') => {
+    if (id === seciliId) return // bir çatı kendisiyle birleştirilemez
     const e = new Set(eklenen), k = new Set(kaldirilan)
     if (hedef === 'sag') { if (k.has(id)) k.delete(id); else if (!kayitli.has(id)) e.add(id) }
     else { if (e.has(id)) e.delete(id); else if (kayitli.has(id)) k.add(id) }
@@ -86,12 +87,12 @@ export default function App() {
         </div>
       </header>
 
-      <main className="gutter mx-auto w-full max-w-[1600px] py-6 flex flex-col gap-5">
+      <main className="gutter mx-auto w-full max-w-[1600px] py-5 flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-[22px] font-semibold tracking-[-0.01em]">Şifreli Kampanya Birleşim Yönetimi</h1>
-            <p className="text-muted text-[13.5px] mt-1 max-w-[72ch]">
-              Çatı kampanyalar arasında birleşim izni verin veya mevcut izni kaldırın. İzin çatı seviyesinde tanımlanır ve çatı altındaki tüm aktif, şifreli ve birleşebilir kampanyalara uygulanır.
+            <p className="text-muted text-[13px] mt-1 max-w-[72ch]">
+              Yalnızca aktif, şifreli ve birleşebilir kampanyalar listelenir. Birleşim izni çatı seviyesinde tanımlanır.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[13px] text-muted">
@@ -100,7 +101,7 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
-          <GroupTable gruplar={p.gruplar} ortakSayisi={ortakSayisi} seciliId={seciliId} taslakSayisi={taslakSayisi}
+          <GroupTable gruplar={p.gruplar} ortakSayisi={ortakSayisi} seciliId={seciliId}
             onYonet={yonet} onDetay={setDetayId} />
           <div className="xl:sticky xl:top-[76px]">
             <MergePanel secili={secili} gruplar={p.gruplar} kayitli={kayitli} eklenen={eklenen} kaldirilan={kaldirilan}
@@ -161,7 +162,7 @@ export default function App() {
       </Modal>
 
       <footer className="gutter mx-auto w-full max-w-[1600px] pb-6 text-xs text-muted flex flex-wrap gap-x-4 gap-y-1">
-        <span>Prototip sürüm 1.0</span>
+        <span>Prototip sürüm 1.1 · Hazırlayan: <strong className="font-semibold text-fg">Derya Güven</strong></span>
         <span>Veriler temsilidir, gerçek kampanya servislerine bağlı değildir.</span>
         <span>Değişiklikler bu tarayıcıda saklanır.</span>
       </footer>
